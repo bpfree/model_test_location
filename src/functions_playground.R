@@ -1,12 +1,8 @@
 # defaults to a positive-positive correlation, switch using rev=TRUE
-linear_membership <- function(x, rev=FALSE, upper_clamp = "max", lower_clamp = "min",
-                              zero_offset=(1/1000), out_range="default"){
-  
-  # reverse order so larger values are smaller if desired
-  if(rev){x = -1.0*x
-          lower_clamp0 = lower_clamp
-          lower_clamp = ifelse(upper_clamp=="max", "min", -1*upper_clamp) # swap upper and lower clamp values
-          upper_clamp = ifelse(lower_clamp0=="min", "max", -1*lower_clamp0)}  # swap upper and lower clamp values
+quantile_membership <- function(x, quantiles=seq(0.1,0.9,0.1),
+                                targets="default", out_range="default"){
+  # check for 1 more target values than quantile cutoffs
+  if(any(targets!="default")){ if((length(targets)-length(quantiles))!=1){print("ERROR: QUANTILE VARIABLE LENGTHS DON'T MATCH")}}
   
   # get clamp values from the input either taking the max or setting the value
   upper_clamp = ifelse(upper_clamp=="max", max(x, na.rm=TRUE), upper_clamp)
