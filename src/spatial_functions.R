@@ -5,11 +5,11 @@ library(dplyr)
 
 # extract values from a raster onto the hex grid
   # possible methods: "mean", "max", "min", "sum", "weighted_mean"
-extract_raster_values <- function(poly_extr, fp_ras_in, id_cols=c(), method="mean", band=1){
+load_raster_values <- function(poly_extr, fp_in, id_cols=c(), method="mean", band=1){
   # terra as weird, this makes sure the input works whether sf or spatVect
   poly_extr = vect(st_as_sf(poly_extr) %>% select(all_of(id_cols)))
   # read the raster file
-  my_ras = rast(fp_ras_in, lyrs=band)
+  my_ras = rast(fp_in, lyrs=band)
   my_ras = project(my_ras, crs(poly_extr))
   # extract the raster values, weighted mean
   if(method=="weighted_mean"){
@@ -27,12 +27,12 @@ extract_raster_values <- function(poly_extr, fp_ras_in, id_cols=c(), method="mea
 ###
 
 # extract if input polygon (hex grid) intersects an input polygon filepath
-extract_polygon_intersection_boolean <- function(poly_extr, fp_poly_in, id_cols=c(), layer=NULL){
+load_polygon_intersection_boolean <- function(poly_extr, fp_in, id_cols=c(), layer=NULL){
   # make sure hex grid is an sf
   poly_extr = st_as_sf(poly_extr) %>% select(all_of(id_cols))
   # read the input polygon file
-  if(is.null(layer)){ my_sf = st_read(fp_poly_in, quiet=TRUE)
-  }else{ my_sf = st_read(dsn=fp_poly_in, layer=layer, quiet = TRUE) }
+  if(is.null(layer)){ my_sf = st_read(fp_in, quiet=TRUE)
+  }else{ my_sf = st_read(dsn=fp_in, layer=layer, quiet = TRUE) }
   # project to crs of the extraction polygon
   my_sf = st_transform(my_sf, st_crs(poly_extr))
   # get the extraction polygon (grid) that intersects the input polygon
@@ -47,7 +47,7 @@ extract_polygon_intersection_boolean <- function(poly_extr, fp_poly_in, id_cols=
 
 # extract value from a target field in a polygon layer, summarizing if multiple intersections
   # possible methods: "mean", "max", "min", "sum", "median", "first"
-extract_polygon_intersection_value <- function(poly_extr, fp_poly_in, value_col,
+load_polygon_intersection_value <- function(poly_extr, fp_in, value_col,
                                                id_cols=c(), layer=NULL, method="mean"){
   # make list of functions 
   funcs_list_narm = list("mean"=mean, "min"=min, "max"=max, "median"=median)
@@ -55,8 +55,8 @@ extract_polygon_intersection_value <- function(poly_extr, fp_poly_in, value_col,
   # make sure input polygon is a sf
   poly_extr = st_as_sf(poly_extr) %>% select(all_of(id_cols))
   # read the input polygon file
-  if(is.null(layer)){ my_sf = st_read(fp_poly_in, quiet=TRUE)
-  }else{ my_sf = st_read(dsn=fp_poly_in, layer=layer, quiet = TRUE) }
+  if(is.null(layer)){ my_sf = st_read(fp_in, quiet=TRUE)
+  }else{ my_sf = st_read(dsn=fp_in, layer=layer, quiet = TRUE) }
   # project to crs of the extraction polygon
   my_sf = st_transform(my_sf, st_crs(poly_extr))
   # get just the target column
@@ -78,7 +78,28 @@ extract_polygon_intersection_value <- function(poly_extr, fp_poly_in, value_col,
 
 ###
 
+# extract already scored column on a hex grid with the id columns present
+load_scored_hex_grid <- function(poly_extr, fp_in, value_col,
+                                    id_cols=c(), layer=NULL){
+  # make sure input polygon is a sf
+  poly_extr = st_as_sf(poly_extr) %>%
+    select(all_of(id_cols)) %>%
+    st_drop_geometry(.)
+  # read the input polygon file
+  if(is.null(layer)){ my_sf = st_read(fp_in, quiet=TRUE)
+  }else{ my_sf = st_read(dsn=fp_in, layer=layer, quiet = TRUE) }
+  # get just the target column
+  my_sf = my_sf %>% 
+    st_drop_geometry(.) %>%
+    select(all_of(c(id_cols, value_col)))
+  # get the extraction of the two by column id
+  poly_extr = poly_extr %>%
+    left_join(my_sf, by=id_cols)
+  # return
+  return(poly_extr)
+}
 
+###
 
 
 

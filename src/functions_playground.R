@@ -3,35 +3,49 @@ library(dplyr)
 library(ggplot2)
 library(sf)
 library(terra)
+source("./src/spatial_functions.R")
+source("./src/membership_functions.R")
 
-# possible methods: "mean", "max", "min", "sum", "weighted_mean'
-extract_polygon_intersection_value <- function(poly_extr, fp_poly_in, value_col,
-                                               id_cols=c(), layer=NULL, method="mean"){
-  # make list of functions 
-  funcs_list_narm = list("mean"=mean, "min"=min, "max"=max, "median"=median)
-  funcs_list_else = list("first"=first)
-  # make sure input polygon is a sf
-  poly_extr = st_as_sf(poly_extr) %>% select(all_of(id_cols))
-  # read the input polygon file
-  if(is.null(layer)){ my_sf = st_read(fp_poly_in, quiet=TRUE)
-  }else{ my_sf = st_read(dsn=fp_poly_in, layer=layer, quiet = TRUE) }
-  # project to crs of the extraction polygon
-  my_sf = st_transform(my_sf, st_crs(poly_extr))
-  # get just the target column
-  my_sf = my_sf %>% select(value_col)
-  # get the extraction polygon (grid) that intersects the input polygon
-  extraction = st_intersection(poly_extr, my_sf)
-  # summarise to return one value per extraction feature
-  extraction = extraction %>%
-    st_drop_geometry(.) %>%
-    group_by(GRID_ID, study_area) %>%       # FIX THIS WITH INTERENT TO LOOK UP
-    summarise(
-      vals = ifelse(method %in% names(funcs_list_narm),
-                    funcs_list_narm[[method]](get(value_col), na.rm=TRUE),
-                    funcs_list_else[[method]](get(value_col)) )
-    )
+
+load_and_score_model_layer <- function(layer_object){
+  # get lists to map string inputs to functions 
+  extraction_functions <- list(
+    "raster" = load_raster_values,
+    "polygon_intersection" = load_polygon_intersection_boolean,
+    "polygon_value" = load_polygon_intersection_value,
+    "scored_hex" = load_scored_hex_grid )
+  
+  membership_functions <- list(
+    "z_membership" = z_membership,
+    "s_membership" = s_membership,
+    "linear_membership" = linear_membership,
+    "quantile_membership" = quantile_membership,
+    "bin_membership" = bin_membership,
+    "mapped_membership" = mapped_membership,
+    "none" = \ (x) x)
+  
+  ######
+  # get hex grid and id_cols from global variable
+  id_cols = get(layer_object$id_cols_var)
+  my_sf = get(layer_object$hex_grid_var) %>%
+    select(all_of(id_cols))
+
+  
+  # load in the data
+  my_sf = extraction_functions[[layer_object$input_type]](
+    poly_extr=my_sf, fp_in=layer_object$fp_data_in, id_cols=id_cols
+    # layer_object$load_params                                            # NEED TO FIGURE OUT HOW TO SEND ARGS IN FROM LIST
+  )
+  
+  # score the layer
+  my_sf[[layer_object$layer_name]] = membership_functions[[layer_object$mem_fun]](
+    x = my_sf$vals
+  )
+  
   # return
-  return(extraction)
+  my_sf = st_drop_geometry(my_sf) %>%
+    select(all_of(c(id_cols, layer_object$layer_name)))
+  return(my_sf)
 }
 
 
@@ -39,20 +53,23 @@ extract_polygon_intersection_value <- function(poly_extr, fp_poly_in, value_col,
 
 
 a = st_read("./data/test_grid_ak.gpkg")
-a = a[1:100,]
+a = a[1:150,]
 
-b = "C:/Users/Isaac/Downloads/Clipped_WetlandsII-20240917T191030Z-001/Clipped_WetlandsII/Clipped_WetlandsII.shp"
+# b = "C:/Users/Isaac/Downloads/Clipped_WetlandsII-20240917T191030Z-001/Clipped_WetlandsII/Clipped_WetlandsII.shp"
 # b = "C:/Users/Isaac/Downloads/statistical_areas.gpkg"
 # b = "./data/test_rast_ak.tif"
+b = "./data/test_scored_hex.gpkg"
 
 # c = "PVB_CF_salmon_statewide_2024_NAD83_subset"
-c=NULL
+# c=NULL
+c = "test_scored_hex"
 
-d = "WETLAND_TY"
+# d = "WETLAND_TY"
 # d = "ACRES"
+d = "dummy"
 
-test_out = extract_polygon_intersection_value(poly_extr = a, fp_poly_in = b, layer=c, value_col=d,
-                                 id_cols=c("GRID_ID", "study_area"), method="first")
+test_out = extract_scored_hex_grid(poly_extr = a, fp_hex_in = b, value_col=d, layer=c,
+                                 id_cols=c("GRID_ID", "study_area"))
 
 
 
