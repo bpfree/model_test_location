@@ -60,13 +60,13 @@ load_polygon_intersection_value <- function(poly_extr, fp_in, value_col,
   # project to crs of the extraction polygon
   my_sf = st_transform(my_sf, st_crs(poly_extr))
   # get just the target column
-  my_sf = my_sf %>% select(value_col)
+  my_sf = my_sf %>% select(all_of(value_col))
   # get the extraction polygon (grid) that intersects the input polygon
   extraction = st_intersection(poly_extr, my_sf)
   # summarise to return one value per extraction feature
   extraction = extraction %>%
     st_drop_geometry(.) %>%
-    group_by(GRID_ID, study_area) %>%       # FIX THIS WITH INTERENT TO LOOK UP
+    group_by_at(id_cols) %>%       
     summarise(
       vals = ifelse(method %in% names(funcs_list_narm),
                     funcs_list_narm[[method]](get(value_col), na.rm=TRUE),
@@ -91,7 +91,8 @@ load_scored_hex_grid <- function(poly_extr, fp_in, value_col,
   # get just the target column
   my_sf = my_sf %>% 
     st_drop_geometry(.) %>%
-    select(all_of(c(id_cols, value_col)))
+    select(all_of(c(id_cols, value_col))) %>%
+    rename(vals=value_col)
   # get the extraction of the two by column id
   poly_extr = poly_extr %>%
     left_join(my_sf, by=id_cols)

@@ -9,8 +9,8 @@ fp_data_in = "./data/test_rast_ak.tif",
 input_type = "raster",
 mem_fun = "s_membership",
 load_params = list("method"="mean", "band"=1),
-score_params = list(upper_clamp = "max", lower_clamp = "min",
-                    zero_offset=(1/1000), out_range="default"),
+score_params = list("upper_clamp" = "max", "lower_clamp" = "min",
+                    "zero_offset"=(1/1000), "out_range"="default"),
 hex_grid_var = "hex_grid_global",
 id_cols_var = "id_cols_global"
 )

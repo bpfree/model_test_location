@@ -1,5 +1,7 @@
 library(matrixStats)
 library(dplyr)
+source("./src/spatial_functions.R")
+source("./src/membership_functions.R")
 
 # calculate weighted geometric means of columns in a dataframe
 geom_mean_columns <- function(my_df, cols, id_cols=c(), weights=NULL){
@@ -25,6 +27,53 @@ geom_mean_columns <- function(my_df, cols, id_cols=c(), weights=NULL){
     my_df$vals = vals
     return(my_df)
   }
+}
+
+###
+
+# from input settings contained in a layer run a loading function and 
+ # a scoring function and return the values (with the id columns)
+load_and_score_model_layer <- function(layer_object){
+  # get lists to map string inputs to functions 
+  extraction_functions <- list(
+    "raster" = load_raster_values,
+    "polygon_intersection" = load_polygon_intersection_boolean,
+    "polygon_value" = load_polygon_intersection_value,
+    "scored_hex" = load_scored_hex_grid )
+  
+  membership_functions <- list(
+    "z_membership" = z_membership,
+    "s_membership" = s_membership,
+    "linear_membership" = linear_membership,
+    "quantile_membership" = quantile_membership,
+    "bin_membership" = bin_membership,
+    "mapped_membership" = mapped_membership,
+    "none" = \ (x) x)
+  
+  ######
+  # get hex grid and id_cols from global variable
+  id_cols = get(layer_object$id_cols_var)
+  hex_sf = get(layer_object$hex_grid_var) %>%
+    select(all_of(id_cols))
+  
+  ### load in the data
+  # set up the list of load arguments
+  args_list = c( list(poly_extr=hex_sf, fp_in=layer_object$fp_data_in, id_cols=id_cols),
+                 layer_object$load_params)
+  # run the load function
+  hex_values = do.call(extraction_functions[[layer_object$input_type]],
+                       args = args_list )
+  
+  ### score the layer
+  # set up the list of score arguments
+  args_list = c( list(x=hex_values$vals), layer_object$score_params )
+  # run the scoring function
+  hex_values[[layer_object$layer_name]] = do.call(
+    membership_functions[[layer_object$mem_fun]],
+    args = args_list )
+  
+  # return
+  return(hex_values %>% select(-vals))
 }
 
 ###
