@@ -5,33 +5,42 @@ library(sf)
 library(terra)
 source("./src/spatial_functions.R")
 source("./src/membership_functions.R")
+source("./src/model_functions.R")
+
+
+calculate_submodel <- function(submodel_object){
+  # get # of layers in submodel
+  n_lyrs = length(submodel_object$layers)
+  # get hex grid and id_cols from global variable
+  id_cols = get(submodel_object$id_cols_var)
+  hex_sf = get(submodel_object$hex_grid_var) %>%
+    select(all_of(id_cols))
+  # load each submodel layer into data frame
+  lyr_names = c()
+  for(n in seq(n_lyrs)){
+    # load and score the layer object
+    lyr_data = load_and_score_model_layer(submodel_object$layers[[n]])
+    # add layer data onto empty hex object
+    hex_sf = left_join(hex_sf, lyr_data, by=id_cols)
+    # keep name of the layers
+    lyr_names = c(lyr_names, c(submodel_object$layers[[n]]$layer_name))
+  }
+  # calculate weighted geom mean of submodel layers
+  sm_vals = geom_mean_columns(my_df=hex_sf,
+              cols=lyr_names, id_cols=id_cols, weights=submodel_object$weights)
+  # rejoin values to the hex and name the column to the submodel name
+  hex_sf = left_join(hex_sf,
+                     sm_vals %>% rename(!!submodel_object$name := vals),
+                     by=id_cols )
+  
+}
 
 
 
-a = st_read("./data/test_grid_ak.gpkg")
-a = a[1:150,]
 
-# b = "C:/Users/Isaac/Downloads/Clipped_WetlandsII-20240917T191030Z-001/Clipped_WetlandsII/Clipped_WetlandsII.shp"
-# b = "C:/Users/Isaac/Downloads/statistical_areas.gpkg"
-# b = "./data/test_rast_ak.tif"
-b = "./data/test_scored_hex.gpkg"
-
-# c = "PVB_CF_salmon_statewide_2024_NAD83_subset"
-# c=NULL
-c = "test_scored_hex"
-
-# d = "WETLAND_TY"
-# d = "ACRES"
-d = "dummy"
-
-test_out = extract_scored_hex_grid(poly_extr = a, fp_hex_in = b, value_col=d, layer=c,
-                                 id_cols=c("GRID_ID", "study_area"))
-
-
-
-
-test_plot = ggplot(hex_values) +
-  theme_bw() +
-  geom_point(aes(x=vals, y=depth))
-
+# 
+# test_plot = ggplot(hex_values) +
+#   theme_bw() +
+#   geom_point(aes(x=vals, y=depth))
+# 
 

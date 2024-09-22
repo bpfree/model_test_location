@@ -4,7 +4,8 @@ source("./src/spatial_functions.R")
 source("./src/membership_functions.R")
 
 # calculate weighted geometric means of columns in a dataframe
-geom_mean_columns <- function(my_df, cols, id_cols=c(), weights=NULL){
+geom_mean_columns <- function(my_df, cols, id_cols=c(),
+                              weights=NULL, na_replace=1){
   # subset the data into only what columns are needed
   my_df <- my_df %>% select(all_of(c(id_cols, cols)))
   # if my_df is a sf dataframe it will retain the extra geom. column
@@ -12,6 +13,7 @@ geom_mean_columns <- function(my_df, cols, id_cols=c(), weights=NULL){
     my_df = st_drop_geometry(my_df) }
   # convert data columns into a matrix
   my_mtrx = as.matrix(my_df %>% select(all_of(cols)))
+  my_mtrx[is.na(my_mtrx)] = na_replace # fill na values
   # initialize even weighting if none given
   if(is.null(weights)){ weights = rep(1/ncol(my_mtrx), ncol(my_mtrx)) }
   ### run rowwise weighted mean calculation by using matrix math
