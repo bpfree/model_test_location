@@ -77,14 +77,22 @@ submodel_2 = list(
   id_cols_var = "id_cols_global"
 )
 
+##############################################
+
+model_1 = list(
+  name = "model_1",
+  submodels = list(submodel_1, submodel_2),
+  weights = c(1, 1),
+  hex_grid_var = "hex_grid_global",
+  id_cols_var = "id_cols_global"
+)
 
 
 
 
 
 
-
-# dummy = load_and_score_model_layer(layer_4)
+dummy = calculate_model(model_1)
 
 
 
