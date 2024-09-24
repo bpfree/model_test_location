@@ -27,7 +27,8 @@ load_raster_values <- function(poly_extr, fp_in, id_cols=c(), method="mean", ban
 ###
 
 # extract if input polygon (hex grid) intersects an input polygon filepath
-load_polygon_intersection_boolean <- function(poly_extr, fp_in, id_cols=c(), layer=NULL){
+load_polygon_intersection_boolean <- function(poly_extr, fp_in, id_cols=c(),
+                                              layer=NULL, buffer=NULL){
   # make sure hex grid is an sf
   poly_extr = st_as_sf(poly_extr) %>% select(all_of(id_cols))
   # read the input polygon file
@@ -35,6 +36,8 @@ load_polygon_intersection_boolean <- function(poly_extr, fp_in, id_cols=c(), lay
   }else{ my_sf = st_read(dsn=fp_in, layer=layer, quiet = TRUE) }
   # project to crs of the extraction polygon
   my_sf = st_transform(my_sf, st_crs(poly_extr))
+  # apply buffer if present
+  if(!is.null(buffer)){ my_sf = st_buffer(my_sf, dist=buffer)}
   # get the extraction polygon (grid) that intersects the input polygon
   extraction = st_intersects(poly_extr, my_sf, sparse=TRUE)
   #get true/ false column if length of intersects > 0
@@ -47,8 +50,8 @@ load_polygon_intersection_boolean <- function(poly_extr, fp_in, id_cols=c(), lay
 
 # extract value from a target field in a polygon layer, summarizing if multiple intersections
   # possible methods: "mean", "max", "min", "sum", "median", "first"
-load_polygon_intersection_value <- function(poly_extr, fp_in, value_col,
-                                               id_cols=c(), layer=NULL, method="mean"){
+load_polygon_intersection_value <- function(poly_extr, fp_in, value_col, id_cols=c(),
+                                            layer=NULL, method="mean", buffer=NULL){
   # make list of functions 
   funcs_list_narm = list("mean"=mean, "min"=min, "max"=max, "median"=median)
   funcs_list_else = list("first"=first)
@@ -61,6 +64,8 @@ load_polygon_intersection_value <- function(poly_extr, fp_in, value_col,
   my_sf = st_transform(my_sf, st_crs(poly_extr))
   # get just the target column
   my_sf = my_sf %>% select(all_of(value_col))
+  # apply buffer if present
+  if(!is.null(buffer)){ my_sf = st_buffer(my_sf, dist=buffer)}
   # get the extraction polygon (grid) that intersects the input polygon
   extraction = st_intersection(poly_extr, my_sf)
   # summarise to return one value per extraction feature

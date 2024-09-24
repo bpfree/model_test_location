@@ -115,7 +115,6 @@ calculate_submodel <- function(submodel_object){
 
 # run model object, run calculate submodel 1 by 1 and then
  # calculate the final model value
-
 calculate_model <- function(full_model_object){
   # get number of submodels 
   n_sms = length(full_model_object$submodels)
