@@ -3,7 +3,7 @@ source("./src/membership_functions.R")
 source("./src/model_functions.R")
 source("./src/spatial_functions.R")
 
-hex_grid_global <<- st_read("./data/test_grid_ak.gpkg")[1:150,]
+hex_grid_global <<- st_read("./data/test_grid_ak_small.gpkg")
 id_cols_global <<- c("GRID_ID", "study_area")
 
 ##
