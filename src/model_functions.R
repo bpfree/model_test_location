@@ -148,6 +148,67 @@ calculate_model <- function(full_model_object){
 
 ###
 
+# identify which layers go into combined layers and return info on each 
+ # layer to send them to the correct destination
+group_and_index_model_layers <- function(model_layers){
+  # initialize data frame to track model layer information
+  layer_info <- data.frame(indx=integer(), name = character(), group = character(),
+                           weight = integer(),type = character())
+  # iterate through model layers and track the layer info
+  for(i in seq(length(model_layers))){
+    lyr = model_layers[[i]]
+    layer_info[i,c(2,3,5)] = c(lyr$layer_name, lyr$destination, lyr$input_type)
+    layer_info[i,c(1,4)]   = c(i, lyr$weight)
+  }
+  ### remove layers in combined layers and add them to the relevant combined layers
+  combined_layers = layer_info %>% filter(type=="combined") # combined layers
+  rm_indxs = c() # track indexes to remove
+  if(nrow(combined_layers)>0){
+    for(j in seq(nrow(combined_layers))){
+      # get which layers are relevant to the current combined layer
+      group_layers = layer_info$indx[layer_info$group==combined_layers$name[j]]
+      # add layer objects for the combined layer to the combined layer
+      model_layers[[combined_layers$indx[j]]]$score_params = c(
+        model_layers[[combined_layers$indx[j]]]$score_params, model_layers[group_layers] )
+      rm_indxs = c(rm_indxs, group_layers)
+    }
+    layer_info = layer_info %>%
+      filter(!(indx %in% rm_indxs))
+  }
+  return(list(model_layers, layer_info))
+}
+
+###
+
+# go through the submodels and create submodel objects and then put them into
+ # a nested full model object
+create_fullmodel_object <- function(model_layers, layer_info, submodel_names, submodel_weights, model_name){
+  if(length(unique(layer_info$group)) != length(submodel_names)){print("ERROR: SUBMODEL AND DESTINATION LENGTHS DON'T MATCH")}
+  
+  # iterate through submodels and create submodel objects
+  submodel_objects = list()
+  for(i in seq(length(submodel_names))){
+    submodel_objects[[i]] = list(
+      name = submodel_names[i],
+      layers = model_layers[layer_info$indx[layer_info$group==submodel_names[i]]],
+      hex_grid_var = "hex_grid_global",
+      id_cols_var = "id_cols_global"
+    )
+  }
+  # 
+  full_model_object = list(
+    name = model_name,
+    submodels = submodel_objects,
+    weights = submodel_weights,
+    hex_grid_var = "hex_grid_global",
+    id_cols_var = "id_cols_global"
+  )
+  #
+  return(full_model_object)
+}
+
+###
+
 
 
 

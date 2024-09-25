@@ -85,7 +85,7 @@ linear_membership <- function(x, rev=TRUE, upper_clamp = "max", lower_clamp = "m
   
   # linear rescale values, accounting for potential output range
   l_value = x * ((out_range[2]-out_range[1])/(upper_clamp-lower_clamp)) # multiply by range ratio
-  l_value = l_value + (out_range[1] - min(l_value)) # shift left or right
+  l_value = l_value + (out_range[1] - min(l_value, na.rm=TRUE)) # shift left or right
   
   return(l_value)
 }
