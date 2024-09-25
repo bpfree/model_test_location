@@ -1,11 +1,4 @@
 
-source("./src/membership_functions.R")
-source("./src/model_functions.R")
-source("./src/spatial_functions.R")
-
-hex_grid_global <<- st_read("./data/test_grid_ak_small.gpkg")
-id_cols_global <<- c("GRID_ID", "study_area")
-
 ##
 
 layer_1 = list(
@@ -41,11 +34,11 @@ layer_2 = list(
 
 layer_3 = list(
   layer_name = "st_area_tst",
-  fp_data_in = "C:/Users/Isaac/Downloads/statistical_areas.gpkg",
+  fp_data_in = "./data/ak_polygon_juneau_test.gpkg",
   destination = "submodel_1",
   input_type = "polygon_intersection",
   mem_fun = "mapped_membership",
-  load_params = list("layer" = "PVB_CF_salmon_statewide_2024_NAD83_subset"),
+  load_params = list(),
   score_params = list("values" = c(1), "targets"=c(0.25)),
   hex_grid_var = "hex_grid_global",
   id_cols_var = "id_cols_global",
@@ -56,12 +49,12 @@ layer_3 = list(
 
 layer_4 = list(
   layer_name = "wet_clip_tst",
-  fp_data_in = "C:/Users/Isaac/Downloads/Clipped_WetlandsII-20240917T191030Z-001/Clipped_WetlandsII/Clipped_WetlandsII.shp",
+  fp_data_in = "./data/test_nwi_poly.shp",
   destination = "submodel_2",    
   input_type = "polygon_value",
   mem_fun = "linear_membership",
   load_params = list("value_col" = "ACRES"),
-  score_params = list(),
+  score_params = list(out_range=c(0.3,0.7)),
   hex_grid_var = "hex_grid_global",
   id_cols_var = "id_cols_global",
   weight = 1
@@ -96,57 +89,6 @@ layer_comb = list(
   id_cols_var = "id_cols_global",
   weight = 1
 )
-
-
-
-
-############################################
-model_layers = list(layer_1, layer_2, layer_3, layer_4, layer_5, layer_comb)
-
-
-##############################################
-
-submodel_1 = list(
-  name = "submodel_1",
-  layers = list(layer_1, layer_2),
-  weights = c(1,1),
-  hex_grid_var = "hex_grid_global",
-  id_cols_var = "id_cols_global"
-)
-
-submodel_2 = list(
-  name = "submodel_2",
-  layers = list(layer_3, layer_4),
-  weights = c(1,1),
-  hex_grid_var = "hex_grid_global",
-  id_cols_var = "id_cols_global"
-)
-
-##############################################
-
-model_1 = list(
-  name = "model_1",
-  submodels = list(submodel_1, submodel_2),
-  weights = c(1, 1),
-  hex_grid_var = "hex_grid_global",
-  id_cols_var = "id_cols_global"
-)
-
-
-
-
-
-
-dummy = load_and_score_model_layer(layer_5)
-dummy = load_and_score_model_layer(layer_2)
-
-
-
-submodel_names = c("submodel_1", "submodel_2")
-submodel_weights = c(1,2)
-
-
-
 
 
 

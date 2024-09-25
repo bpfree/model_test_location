@@ -33,6 +33,29 @@ geom_mean_columns <- function(my_df, cols, id_cols=c(),
 
 ###
 
+# row wise product of certain columns
+column_product <- function(my_df, cols, id_cols=c(), na_replace=1){
+  # subset the data into only what columns are needed
+  my_df <- my_df %>% select(all_of(c(id_cols, cols)))
+  # if my_df is a sf dataframe it will retain the extra geom. column
+  if(ncol(my_df) == length(c(id_cols, cols))+1){
+    my_df = st_drop_geometry(my_df) }
+  # replace NAs with 1 in the dataframe
+  my_df = my_df %>% 
+    mutate(across(all_of(cols), ~replace(., is.na(.), na_replace)))
+  # calculate rowwise product of the values
+  my_df = my_df %>%
+    rowwise() %>%
+    mutate(vals = prod(c_across(cols)))
+  # return output values
+  if(length(id_cols)==0){return(my_df$vals)
+  }else{  # if id columns given return dataframe with id columns
+    my_df = my_df %>% select(all_of(c(id_cols, "vals")))
+    return(my_df) }
+}
+
+###
+
 # from input settings contained in a layer run a loading function and 
  # a scoring function and return the values (with the id columns)
 load_and_score_model_layer <- function(layer_object){
@@ -80,6 +103,47 @@ load_and_score_model_layer <- function(layer_object){
 
 ###
 
+# iteratively load and score the contained layers and then calculate
+ # the combined layer
+calculate_combined_layer <- function(layer_object, fill_value=1){
+  # functions for combining layers
+  combine_functions <- list(
+    "product" = column_product,
+    "geom_mean" = geom_mean_columns)
+  
+  # get hex grid and id_cols from global variable
+  id_cols = get(layer_object$id_cols_var)
+  hex_sf = get(layer_object$hex_grid_var) %>%
+    st_drop_geometry(.) %>%
+    select(all_of(id_cols))
+  
+  # get each model layer extracted
+  weights = c()
+  for(i in seq(length(layer_object$score_params$layers))){
+    hex_sf = hex_sf %>% 
+      left_join(
+        load_and_score_model_layer(layer_object$score_params$layers[[i]]),
+        by = id_cols)
+    weights = c(weights, layer_object$score_params$layers[[i]]$weight)
+  }
+  # get column names to take the product of
+  cols = colnames(hex_sf %>% select(-id_cols))
+  ### run the relevant combination function
+  # standard parameters
+  args_list = list(my_df=hex_sf, cols=cols, id_cols=id_cols, na_replace=fill_value)
+  # if geom mean add weights as a parameter
+  if(layer_object$mem_fun=="geom_meam"){args_list[["weights"]] = weights}
+  # run combine
+  hex_values = do.call(combine_functions[[layer_object$mem_fun]], args = args_list )
+  # rename
+  hex_values = hex_values %>%
+    rename(!!layer_object$layer_name := "vals")
+  # return
+  return(hex_values)
+}
+
+###
+
 # from a submodel object, load the layers as columns and calculate 
  # the final submodel value
 calculate_submodel <- function(submodel_object){
@@ -93,12 +157,17 @@ calculate_submodel <- function(submodel_object){
   # load each submodel layer into data frame
   lyr_names = c()
   for(n in seq(n_lyrs)){
-    # load and score the layer object
-    lyr_data = load_and_score_model_layer(submodel_object$layers[[n]])
+    lyr = submodel_object$layers[[n]]
+    ### load and score the layer object
+    # if a combined layer
+    if(lyr$input_type=="combined"){
+      lyr_data = calculate_combined_layer(lyr)
+      # if not a combined layer
+    }else{ lyr_data = load_and_score_model_layer(lyr) }
     # add layer data onto empty hex object
     sm_hex_df = left_join(sm_hex_df, lyr_data, by=id_cols)
     # keep name of the layers
-    lyr_names = c(lyr_names, c(submodel_object$layers[[n]]$layer_name))
+    lyr_names = c(lyr_names, lyr$layer_name)
   }
   # calculate weighted geom mean of submodel layers
   sm_vals = geom_mean_columns(my_df=sm_hex_df,
@@ -169,7 +238,7 @@ group_and_index_model_layers <- function(model_layers){
       group_layers = layer_info$indx[layer_info$group==combined_layers$name[j]]
       # add layer objects for the combined layer to the combined layer
       model_layers[[combined_layers$indx[j]]]$score_params = c(
-        model_layers[[combined_layers$indx[j]]]$score_params, model_layers[group_layers] )
+        model_layers[[combined_layers$indx[j]]]$score_params, list(layers=model_layers[group_layers]))
       rm_indxs = c(rm_indxs, group_layers)
     }
     layer_info = layer_info %>%
