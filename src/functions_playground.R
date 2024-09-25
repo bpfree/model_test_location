@@ -7,6 +7,13 @@ source("./src/spatial_functions.R")
 source("./src/membership_functions.R")
 source("./src/model_functions.R")
 
+combine_model_layers <- function(layers){
+  
+  
+  
+}
+
+
 poly_extr = st_read("./data/test_grid_ak.gpkg") %>%
   filter(study_area == "Juneau")
 fp_in = "./data/ak_polygon_juneau_test.gpkg"

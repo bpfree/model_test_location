@@ -59,6 +59,21 @@ layer_4 = list(
   id_cols_var = "id_cols_global"
 )
 
+#
+
+layer_5 = list(
+  layer_name = "score_tst",
+  fp_data_in = "./data/test_scored_hex.gpkg",
+  input_type = "scored_hex",
+  mem_fun = "linear_membership",
+  load_params = list("value_col"="r_val", "layer"="test_val"),
+  score_params = list(),
+  hex_grid_var = "hex_grid_global",
+  id_cols_var = "id_cols_global"
+)
+
+
+
 ##############################################
 
 submodel_1 = list(
@@ -92,7 +107,7 @@ model_1 = list(
 
 
 
-dummy = calculate_model(model_1)
+dummy = load_and_score_model_layer(layer_5)
 
 
 
