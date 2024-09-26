@@ -67,12 +67,12 @@ load_and_score_model_layer <- function(layer_object){
     "scored_hex" = load_scored_hex_grid )
   
   membership_functions <- list(
-    "z_membership" = z_membership,
-    "s_membership" = s_membership,
-    "linear_membership" = linear_membership,
-    "quantile_membership" = quantile_membership,
-    "bin_membership" = bin_membership,
-    "mapped_membership" = mapped_membership,
+    "z_mem" = z_membership,
+    "s_mem" = s_membership,
+    "linear" = linear_membership,
+    "quantile" = quantile_membership,
+    "binned" = bin_membership,
+    "mapped" = mapped_membership,
     "none" = \ (x) x)
   
   ######
@@ -119,15 +119,15 @@ calculate_combined_layer <- function(layer_object, fill_value=1){
   
   # get each model layer extracted
   weights = c()
-  for(i in seq(length(layer_object$score_params$layers))){
+  for(kk in seq(length(layer_object$score_params$layers))){
     hex_sf = hex_sf %>% 
       left_join(
-        load_and_score_model_layer(layer_object$score_params$layers[[i]]),
+        load_and_score_model_layer(layer_object$score_params$layers[[kk]]),
         by = id_cols)
-    weights = c(weights, layer_object$score_params$layers[[i]]$weight)
+    weights = c(weights, layer_object$score_params$layers[[kk]]$weight)
   }
   # get column names to take the product of
-  cols = colnames(hex_sf %>% select(-id_cols))
+  cols = colnames(hex_sf %>% select(-all_of(id_cols)))
   ### run the relevant combination function
   # standard parameters
   args_list = list(my_df=hex_sf, cols=cols, id_cols=id_cols, na_replace=fill_value)
@@ -147,6 +147,7 @@ calculate_combined_layer <- function(layer_object, fill_value=1){
 # from a submodel object, load the layers as columns and calculate 
  # the final submodel value
 calculate_submodel <- function(submodel_object){
+  if(verbose>4){print(paste("Submodel started:",submodel_object$name, Sys.time()))}
   # get # of layers in submodel
   n_lyrs = length(submodel_object$layers)
   # get hex grid and id_cols from global variable
@@ -156,8 +157,9 @@ calculate_submodel <- function(submodel_object){
     select(all_of(id_cols))
   # load each submodel layer into data frame
   lyr_names = c()
-  for(n in seq(n_lyrs)){
-    lyr = submodel_object$layers[[n]]
+  for(jj in seq(n_lyrs)){
+    lyr = submodel_object$layers[[jj]]
+    if(verbose>7){print(paste("Layer started:",lyr$layer_name, Sys.time()))}
     ### load and score the layer object
     # if a combined layer
     if(lyr$input_type=="combined"){
@@ -168,6 +170,7 @@ calculate_submodel <- function(submodel_object){
     sm_hex_df = left_join(sm_hex_df, lyr_data, by=id_cols)
     # keep name of the layers
     lyr_names = c(lyr_names, lyr$layer_name)
+    if(verbose>7){print(paste("Layer finished:",lyr$layer_name, Sys.time()))}
   }
   # calculate weighted geom mean of submodel layers
   sm_vals = geom_mean_columns(my_df=sm_hex_df,
@@ -177,6 +180,7 @@ calculate_submodel <- function(submodel_object){
                         sm_vals %>% rename(!!submodel_object$name := vals),
                         by=id_cols )
   # return
+  if(verbose>4){print(paste("Submodel finished:",submodel_object$name, Sys.time()))}
   return(sm_hex_df)
 }
 
@@ -194,15 +198,15 @@ calculate_model <- function(full_model_object){
     select(all_of(id_cols))
   # run each submodel 1 by 1 and load the sm values
   sm_names = c()
-  for(n in seq(n_sms)){
+  for(ii in seq(n_sms)){
     # load and score the submodel object
-    sm_data = calculate_submodel(full_model_object$submodels[[n]])
+    sm_data = calculate_submodel(full_model_object$submodels[[ii]])
     # add sm data onto empty hex object
     fm_hex_df = left_join(fm_hex_df,
-                          sm_data %>% select(all_of(c(id_cols, full_model_object$submodels[[n]]$name))),
+                          sm_data %>% select(all_of(c(id_cols, full_model_object$submodels[[ii]]$name))),
                           by=id_cols)
     # keep name of the layers
-    sm_names = c(sm_names, c(full_model_object$submodels[[n]]$name))
+    sm_names = c(sm_names, c(full_model_object$submodels[[ii]]$name))
   }
   # calculate weighted geom mean of submodel values
   fm_vals = geom_mean_columns(my_df=fm_hex_df, cols=sm_names,

@@ -7,30 +7,27 @@ library(terra)
 source("./src/spatial_functions.R")
 source("./src/membership_functions.R")
 source("./src/model_functions.R")
+verbose <<- 10
 
-#
+# define the settings file
+input_file_global <<- "test_model_run.csv"
 
-source("./src/layer_item_playground.R")
-model_name = "test_model"
-hex_grid_global <<- st_read("./data/test_grid_ak_small.gpkg")
-id_cols_global <<- c("GRID_ID", "study_area")
-submodel_names = c("submodel_1", "submodel_2")
-submodel_weights = c(1,2)
-fill_value = 1
-model_layers = list(layer_1, layer_2, layer_3, layer_4, layer_5, layer_comb)
+# parse the settings file into model architecture variables
+source("parse_inputFile_playground.R")
 
-#
+# define the hex grid for the model run
+hex_grid_global <<- st_read(file.path(sub("/$", "", source_dir), hex_grid_global_path)) %>%
+  select(all_of(id_cols_global))
 
+# group and index the model layers 
 temp <- group_and_index_model_layers(model_layers)
 model_layers = temp[[1]]
 layer_info = temp[[2]]
 
-#
-
+# create submodel objects and nest them into a full model object
 full_model_object <- create_fullmodel_object(model_layers, layer_info, submodel_names, submodel_weights, model_name)
 
-#
-
+# run the model calulcation on the model object
 out_df = calculate_model(full_model_object)
 
 
