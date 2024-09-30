@@ -92,7 +92,7 @@ for(n in seq(nrow(layer_input))){
   ###########################################################
   ### initialize layer object and then add to model_layers
   lyr = list(
-    layer_name = layer_row$name,
+    name = layer_row$name,
     destination = layer_row$destination,
     fp_data_in = file.path(sub("/$", "", source_dir), layer_row$fp_in),
     input_type = layer_row$type,
@@ -108,8 +108,9 @@ for(n in seq(nrow(layer_input))){
 } # n layer_input loop
 
 
-
-
+###
+# make sure output folder exists
+dir.create(file.path(sub("/$", "", project_dir), "intermediate_data"), showWarnings = FALSE)
 
 
 

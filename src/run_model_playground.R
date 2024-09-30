@@ -30,5 +30,8 @@ full_model_object <- create_fullmodel_object(model_layers, layer_info, submodel_
 # run the model calulcation on the model object
 out_df = calculate_model(full_model_object)
 
-
+# save the output
+st_write(hex_grid_global %>% left_join(out_df, by=id_cols_global),
+         object_filename(full_model_object, "mdlout"),
+         delete_layer=TRUE, append=FALSE)
 

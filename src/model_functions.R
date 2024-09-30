@@ -55,10 +55,31 @@ column_product <- function(my_df, cols, id_cols=c(), na_replace=1){
 }
 
 ###
+# create output filename for a model object and type of object
+object_filename <- function(object, type_tag, suffix=".gpkg", subfolder="intermediate_data"){
+  ### examples of type tags
+  # constr = constraints
+  # lyrext = layer extraction
+  # lyrcmb = combined layer
+  # submdl = submodel (with scored layer values)
+  # mdlout + final model output (with submodel values)
+  
+  # get root of filepath that will be true for any object
+  fp_out = file.path(sub("/$", "", project_dir), subfolder, paste(c(region_code, project_code, file_tags), collapse="_"))
+  # get date
+  date = format(Sys.Date(), "%Y%m%d")
+  # create full filepath
+  fp_out = paste(c(fp_out, type_tag, object$name, date), collapse="_")
+  # add suffix
+  fp_out = paste0(fp_out, suffix)
+  return(fp_out)
+}
+
+###
 
 # from input settings contained in a layer run a loading function and 
  # a scoring function and return the values (with the id columns)
-load_and_score_model_layer <- function(layer_object){
+load_and_score_model_layer <- function(layer_object, write_fp=NULL){
   # get lists to map string inputs to functions 
   extraction_functions <- list(
     "raster" = load_raster_values,
@@ -93,10 +114,11 @@ load_and_score_model_layer <- function(layer_object){
   # set up the list of score arguments
   args_list = c( list(x=hex_values$vals), layer_object$score_params )
   # run the scoring function
-  hex_values[[layer_object$layer_name]] = do.call(
+  hex_values[[layer_object$name]] = do.call(
     membership_functions[[layer_object$mem_fun]],
     args = args_list )
-  
+  ### save if required
+  if(save_extractions){write.csv(hex_values, object_filename(layer_object, "lyrext", suffix=".csv"), row.names=FALSE)}
   # return
   return(hex_values %>% select(-vals))
 }
@@ -121,9 +143,8 @@ calculate_combined_layer <- function(layer_object, fill_value=1){
   weights = c()
   for(kk in seq(length(layer_object$score_params$layers))){
     hex_sf = hex_sf %>% 
-      left_join(
-        load_and_score_model_layer(layer_object$score_params$layers[[kk]]),
-        by = id_cols)
+      left_join(load_and_score_model_layer(layer_object$score_params$layers[[kk]]),
+                by = id_cols)
     weights = c(weights, layer_object$score_params$layers[[kk]]$weight)
   }
   # get column names to take the product of
@@ -137,7 +158,12 @@ calculate_combined_layer <- function(layer_object, fill_value=1){
   hex_values = do.call(combine_functions[[layer_object$mem_fun]], args = args_list )
   # rename
   hex_values = hex_values %>%
-    rename(!!layer_object$layer_name := "vals")
+    rename(!!layer_object$name := "vals")
+  ### save if required
+  if(save_extractions){
+    hex_sf$vals = hex_values[[layer_object$name]]
+    write.csv(hex_sf, object_filename(layer_object, "lyrcmb", suffix=".csv"), row.names=FALSE)}
+  ###
   # return
   return(hex_values)
 }
@@ -158,19 +184,19 @@ calculate_submodel <- function(submodel_object){
   # load each submodel layer into data frame
   lyr_names = c()
   for(jj in seq(n_lyrs)){
-    lyr = submodel_object$layers[[jj]]
-    if(verbose>7){print(paste("Layer started:",lyr$layer_name, Sys.time()))}
+    lyr = submodel_object$layers[[jj]] # get layer object
+    if(verbose>7){print(paste("Layer started:",lyr$name, Sys.time()))}
     ### load and score the layer object
     # if a combined layer
     if(lyr$input_type=="combined"){
       lyr_data = calculate_combined_layer(lyr)
-      # if not a combined layer
+    # if not a combined layer
     }else{ lyr_data = load_and_score_model_layer(lyr) }
     # add layer data onto empty hex object
     sm_hex_df = left_join(sm_hex_df, lyr_data, by=id_cols)
     # keep name of the layers
-    lyr_names = c(lyr_names, lyr$layer_name)
-    if(verbose>7){print(paste("Layer finished:",lyr$layer_name, Sys.time()))}
+    lyr_names = c(lyr_names, lyr$name)
+    if(verbose>7){print(paste("Layer finished:",lyr$name, Sys.time()))}
   }
   # calculate weighted geom mean of submodel layers
   sm_vals = geom_mean_columns(my_df=sm_hex_df,
@@ -199,14 +225,20 @@ calculate_model <- function(full_model_object){
   # run each submodel 1 by 1 and load the sm values
   sm_names = c()
   for(ii in seq(n_sms)){
+    # get the submodel object
+    sm_obj = full_model_object$submodels[[ii]]
     # load and score the submodel object
-    sm_data = calculate_submodel(full_model_object$submodels[[ii]])
+    sm_data = calculate_submodel(sm_obj)
+    ### Save submodel if needed to be saved
+    if(save_submodels){st_write(get(full_model_object$hex_grid_var) %>% left_join(sm_data, by=id_cols),
+                                object_filename(sm_obj, "submdl"), append=FALSE, delete_layer=TRUE) }
+    ###
     # add sm data onto empty hex object
     fm_hex_df = left_join(fm_hex_df,
-                          sm_data %>% select(all_of(c(id_cols, full_model_object$submodels[[ii]]$name))),
+                          sm_data %>% select(all_of(c(id_cols, sm_obj$name))),
                           by=id_cols)
     # keep name of the layers
-    sm_names = c(sm_names, c(full_model_object$submodels[[ii]]$name))
+    sm_names = c(sm_names, c(sm_obj$name))
   }
   # calculate weighted geom mean of submodel values
   fm_vals = geom_mean_columns(my_df=fm_hex_df, cols=sm_names,
@@ -230,7 +262,7 @@ group_and_index_model_layers <- function(model_layers){
   # iterate through model layers and track the layer info
   for(i in seq(length(model_layers))){
     lyr = model_layers[[i]]
-    layer_info[i,c(2,3,5)] = c(lyr$layer_name, lyr$destination, lyr$input_type)
+    layer_info[i,c(2,3,5)] = c(lyr$name, lyr$destination, lyr$input_type)
     layer_info[i,c(1,4)]   = c(i, lyr$weight)
   }
   ### remove layers in combined layers and add them to the relevant combined layers
