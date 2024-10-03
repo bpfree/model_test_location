@@ -56,7 +56,7 @@ column_product <- function(my_df, cols, id_cols=c(), na_replace=1){
 
 ###
 # create output filename for a model object and type of object
-object_filename <- function(object, type_tag, suffix=".gpkg", subfolder="intermediate_data"){
+object_filename <- function(object, type_tag, suffix=".gpkg", subfolder="model_data"){
   ### examples of type tags
   # constr = constraints
   # lyrext = layer extraction

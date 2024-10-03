@@ -4,5 +4,5 @@
 .Ruserdata
 README.html
 data/test_grid_ak.gpkg
-data/AOA_testProjFolder/intermediate_data
-data/AOA_testProjFolder/intermediate_data/*
+AOA_testProjFolder/intermediate_data
+AOA_testProjFolder/intermediate_data/*
