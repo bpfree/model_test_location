@@ -176,7 +176,7 @@ calculate_combined_layer <- function(layer_object, fill_value=1){
 # from a submodel object, load the layers as columns and calculate 
  # the final submodel value
 calculate_submodel <- function(submodel_object){
-  if(verbose>4){print(paste("Submodel started:",submodel_object$name, Sys.time()))}
+  if(verbose>4){print(paste("-- Submodel started:",submodel_object$name, Sys.time()))}
   # get # of layers in submodel
   n_lyrs = length(submodel_object$layers)
   # get hex grid and id_cols from global variable
@@ -188,7 +188,7 @@ calculate_submodel <- function(submodel_object){
   lyr_names = c()
   for(jj in seq(n_lyrs)){
     lyr = submodel_object$layers[[jj]] # get layer object
-    if(verbose>7){print(paste("Layer started:",lyr$name, Sys.time()))}
+    if(verbose>7){print(paste("---- Layer started:",lyr$name, Sys.time()))}
     ### load and score the layer object
     # if a combined layer
     if(lyr$input_type=="combined"){
@@ -199,7 +199,7 @@ calculate_submodel <- function(submodel_object){
     sm_hex_df = left_join(sm_hex_df, lyr_data, by=id_cols)
     # keep name of the layers
     lyr_names = c(lyr_names, lyr$name)
-    if(verbose>7){print(paste("Layer finished:",lyr$name, Sys.time()))}
+    if(verbose>7){print(paste("---- Layer finished:",lyr$name, Sys.time()))}
   }
   # calculate weighted geom mean of submodel layers
   sm_vals = geom_mean_columns(my_df=sm_hex_df,
@@ -209,7 +209,7 @@ calculate_submodel <- function(submodel_object){
                         sm_vals %>% rename(!!submodel_object$name := vals),
                         by=id_cols )
   # return
-  if(verbose>4){print(paste("Submodel finished:",submodel_object$name, Sys.time()))}
+  if(verbose>4){print(paste("-- Submodel finished:",submodel_object$name, Sys.time()))}
   return(sm_hex_df)
 }
 

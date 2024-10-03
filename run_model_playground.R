@@ -15,7 +15,8 @@ input_file_global <<- "test_model_run.csv"
 ###### AUTOMATIC MODEL RUNNING
 
 # parse the settings file into model architecture variables
-source("./src/parse_inputFile.R")
+source("./src/parse_input_file.R")
+if(verbose>0){print(paste("Model started:",full_model_object$name, Sys.time()))}
 
 # load the hex grid for the model run
 hex_grid_global <<- do.call(load_empty_hex_grid, args = hex_load_params)
@@ -48,3 +49,4 @@ st_write(out_hex,
          object_filename(full_model_object, "mdlout"),
          delete_layer=TRUE, append=FALSE, quiet = TRUE)
 
+if(verbose>0){print(paste("Model finished:",full_model_object$name, Sys.time()))}
