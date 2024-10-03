@@ -110,7 +110,7 @@ for(n in seq(nrow(layer_input))){
 
 ###
 # make sure output folder exists
-dir.create(file.path(sub("/$", "", project_dir), "intermediate_data"), showWarnings = FALSE)
+dir.create(file.path(sub("/$", "", project_dir), "model_data"), showWarnings = FALSE)
 
 
 

@@ -1,7 +1,5 @@
 
-
 library(dplyr)
-library(ggplot2)
 library(sf)
 library(terra)
 source("./src/spatial_functions.R")
@@ -10,13 +8,15 @@ source("./src/model_functions.R")
 verbose <<- 10
 
 # define the settings file
+#   * needs to be set for the model run
 input_file_global <<- "test_model_run.csv"
 
 # parse the settings file into model architecture variables
 source("./src/parse_inputFile.R")
 
 # define the hex grid for the model run
-hex_grid_global <<- st_read(file.path(sub("/$", "", source_dir), hex_grid_global_path)) %>%  # in this case it's in the source dir, might not be though
+#   * needs to be accurate for the model run but may not change
+hex_grid_global <<- st_read(file.path(sub("/$", "", source_dir), hex_grid_global_path)) %>%
   select(all_of(id_cols_global))
 
 # group and index the model layers 
