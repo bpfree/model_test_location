@@ -1,6 +1,6 @@
 Settings category,,,,,,,,,,,,,,
 Global,hex grid,./AOA_testProjFolder/test_grid_ak_small.gpkg,,,value_col=study_area,values=Juneau,,,,,,,,
-Global,id columns,GRID_ID,study_area,,,,,,,,,,,
+Global,id_columns,GRID_ID,study_area,,,,,,,,,,,
 Global,region_code,ak,,,,,,,,,,,,
 Global,project_code,aoa,,,,,,,,,,,,
 Global,file_tags,juneau,scT,,,,,,,,,,,

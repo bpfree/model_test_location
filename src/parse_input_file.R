@@ -13,10 +13,10 @@ fullmodel_input = file_input[file_input[[1]]=="Model",]
 ### Parse global variables
 # standard hex grid and id columns
 hex_grid_global_path <<- global_input[global_input[[2]]=="hex grid", 3]
-id_cols_global <<- global_input[global_input[[2]]=="id columns", 3:ncol(global_input)]
+id_cols_global <<- global_input[global_input[[2]]=="id_columns", 3:ncol(global_input)]
 id_cols_global <<- id_cols_global[id_cols_global!=""]
 # assign other variables
-global_params = global_input[!(global_input[[2]] %in% c("hex grid", "id columns", "constraints")),]
+global_params = global_input[!(global_input[[2]] %in% c("hex grid", "id_columns", "constraints")),]
 for(n in seq(nrow(global_params))){
   p_val = global_params[n,3:ncol(global_params)]
   p_val = p_val[p_val!=""]

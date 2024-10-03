@@ -16,7 +16,6 @@ input_file_global <<- "test_model_run.csv"
 
 # parse the settings file into model architecture variables
 source("./src/parse_input_file.R")
-if(verbose>0){print(paste("Model started:",full_model_object$name, Sys.time()))}
 
 # load the hex grid for the model run
 hex_grid_global <<- do.call(load_empty_hex_grid, args = hex_load_params)
@@ -34,6 +33,7 @@ layer_info = temp[[2]]
 full_model_object <- create_fullmodel_object(model_layers, layer_info, submodel_names, submodel_weights, model_name)
 
 # run the model calulcation on the model object
+if(verbose>0){print(paste("Model started:",full_model_object$name, Sys.time()))}
 out_df = calculate_model(full_model_object)
 
 ##### save the output
