@@ -2,8 +2,8 @@
 ### Made to be modular and run the full modeling process from initial settings
 
 **Points of contact**  
-**[Isaac Keohane](mailto:christopher.schillaci@noaa.gov)** \
-**[Brian Free](mailto:drew.resnick@noaa.gov)**
+**[Isaac Keohane](mailto:isaac.keohane@noaa.gov)** \
+**[Brian Free](mailto:brian.free@noaa.gov)**
 
 #### **Repository Structure**
 

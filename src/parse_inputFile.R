@@ -16,13 +16,40 @@ hex_grid_global_path <<- global_input[global_input[[2]]=="hex grid", 3]
 id_cols_global <<- global_input[global_input[[2]]=="id columns", 3:ncol(global_input)]
 id_cols_global <<- id_cols_global[id_cols_global!=""]
 # assign other variables
-global_params = global_input[!(global_input[[2]] %in% c("hex grid", "id columns")),]
+global_params = global_input[!(global_input[[2]] %in% c("hex grid", "id columns", "constraints")),]
 for(n in seq(nrow(global_params))){
   p_val = global_params[n,3:ncol(global_params)]
   p_val = p_val[p_val!=""]
   if(length(p_val)==1){p_val = p_val[1]}
   assign(global_params[n,2], parse_guess(p_val))
 }
+## assign hex grid filtering
+hex_load_params = list("fp_in"=hex_grid_global_path, "id_cols"=id_cols_global,
+                       "value_col"=NULL, "values"=NULL)
+temp = global_input[global_input[[2]]=="hex grid", 4:ncol(global_input)]
+temp = temp[temp!=""]
+if(length(temp)>0){
+  for(g in seq(length(temp))){
+    entry = temp[[g]]
+    # split based on the equals sign
+    entry = unlist(str_split(entry, "="))
+    entry[[1]] = sub(" ", "", entry[[1]]) # remove any spaces from the variable name
+    # if the variable value item has commas, define the param as a vector of the items
+    if(any(grep(",", entry[2]))){
+      items = parse_guess(unlist(str_split(entry[2], ","))) # split and parse
+      hex_load_params[[entry[1]]] <- items # add to hex grid filter list
+    }else{hex_load_params[[entry[1]]] <- parse_guess(entry[2])} # if no comma separating items add the parameter directly
+  } # g loop
+} # if length temp
+## assign constraints variables
+constr_global <<- list()
+if(any(global_input[,2]=="constraints")){
+  constr_global["fp_in"] = global_input[global_input[[2]]=="constraints",3]
+  entry = global_input[global_input[[2]]=="constraints", 4:ncol(global_input)]
+  entry = unlist(str_split(entry[entry!=""], "="))
+  entry[[1]] = sub(" ", "", entry[[1]])
+  constr_global[entry[[1]]] = entry[[2]]
+} # if any constraints
 
 ###############################
 ### parse full model settings

@@ -45,8 +45,7 @@ column_product <- function(my_df, cols, id_cols=c(), na_replace=1){
     mutate(across(all_of(cols), ~replace(., is.na(.), na_replace)))
   # calculate rowwise product of the values
   my_df = my_df %>%
-    rowwise() %>%
-    mutate(vals = prod(c_across(cols)))
+    mutate(vals = Reduce(`*`, across(all_of(cols))))
   # return output values
   if(length(id_cols)==0){return(my_df$vals)
   }else{  # if id columns given return dataframe with id columns
@@ -56,7 +55,7 @@ column_product <- function(my_df, cols, id_cols=c(), na_replace=1){
 
 ###
 # create output filename for a model object and type of object
-object_filename <- function(object, type_tag, suffix=".gpkg", subfolder="model_data"){
+object_filename <- function(object, type_tag, suffix=".gpkg", subfolder="model_data", added_tag=NULL){
   ### examples of type tags
   # constr = constraints
   # lyrext = layer extraction
@@ -69,7 +68,11 @@ object_filename <- function(object, type_tag, suffix=".gpkg", subfolder="model_d
   # get date
   date = format(Sys.Date(), "%Y%m%d")
   # create full filepath
-  fp_out = paste(c(fp_out, type_tag, object$name, date), collapse="_")
+  if(is.null(added_tag)){
+    fp_out = paste(c(fp_out, type_tag, object$name, date), collapse="_")
+  }else{
+    fp_out = paste(c(fp_out, type_tag, added_tag, object$name, date), collapse="_")
+  }
   # add suffix
   fp_out = paste0(fp_out, suffix)
   return(fp_out)
@@ -231,7 +234,8 @@ calculate_model <- function(full_model_object){
     sm_data = calculate_submodel(sm_obj)
     ### Save submodel if needed to be saved
     if(save_submodels){st_write(get(full_model_object$hex_grid_var) %>% left_join(sm_data, by=id_cols),
-                                object_filename(sm_obj, "submdl"), append=FALSE, delete_layer=TRUE) }
+                                object_filename(sm_obj, "submdl", added_tag=full_model_object$name),
+                                append=FALSE, delete_layer=TRUE, quiet = TRUE) }
     ###
     # add sm data onto empty hex object
     fm_hex_df = left_join(fm_hex_df,
@@ -314,7 +318,23 @@ create_fullmodel_object <- function(model_layers, layer_info, submodel_names, su
 
 ###
 
+# filter the hex grid by the model constraints
+apply_model_constraints <- function(hex_sf, constr_object, id_cols){
+  if(is.null(constr_object$layer)){
+    constr_sf = st_read(constr_object$fp_in, quiet=TRUE)
+  }else{constr_sf = st_read(constr_object$fp_in, layer=constr_object$layer)}
+  #
+  constr_sf = constr_sf %>%
+    select(all_of(c(id_cols, constr_object$value_col)))
+  #
+  hex_cols = colnames(hex_sf)
+  hex_sf = hex_sf %>%
+    left_join(st_drop_geometry(constr_sf), by=id_cols) %>%
+    filter(!!as.symbol(constr_object$value_col)!=0)
+  return(hex_sf %>% select(all_of(hex_cols)))
+}
 
+###
 
 
 

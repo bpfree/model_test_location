@@ -31,9 +31,11 @@ load_polygon_intersection_boolean <- function(poly_extr, fp_in, id_cols=c(),
                                               layer=NULL, buffer=NULL){
   # make sure hex grid is an sf
   poly_extr = st_as_sf(poly_extr) %>% select(all_of(id_cols))
+  st_agr(poly_extr) = "constant" # set constant relationship between attributes and geometry
   # read the input polygon file
   if(is.null(layer)){ my_sf = st_read(fp_in, quiet=TRUE)
   }else{ my_sf = st_read(dsn=fp_in, layer=layer, quiet = TRUE) }
+  st_agr(my_sf) = "constant" # set constant relationship between attributes and geometry
   # project to crs of the extraction polygon
   my_sf = st_transform(my_sf, st_crs(poly_extr))
   # apply buffer if present
@@ -57,9 +59,11 @@ load_polygon_intersection_value <- function(poly_extr, fp_in, value_col, id_cols
   funcs_list_else = list("first"=first)
   # make sure input polygon is a sf
   poly_extr = st_as_sf(poly_extr) %>% select(all_of(id_cols))
+  st_agr(poly_extr) = "constant" # set constant relationship between attributes and geometry
   # read the input polygon file
   if(is.null(layer)){ my_sf = st_read(fp_in, quiet=TRUE)
   }else{ my_sf = st_read(dsn=fp_in, layer=layer, quiet = TRUE) }
+  st_agr(my_sf) = "constant" # set constant relationship between attributes and geometry
   # project to crs of the extraction polygon
   my_sf = st_transform(my_sf, st_crs(poly_extr))
   # get just the target column
@@ -75,8 +79,8 @@ load_polygon_intersection_value <- function(poly_extr, fp_in, value_col, id_cols
     summarise(
       vals = ifelse(method %in% names(funcs_list_narm),
                     funcs_list_narm[[method]](get(value_col), na.rm=TRUE),
-                    funcs_list_else[[method]](get(value_col)) )
-    )
+                    funcs_list_else[[method]](get(value_col)) ),
+    .groups = "drop")
   # return
   return(extraction)
 }
@@ -93,11 +97,12 @@ load_scored_hex_grid <- function(poly_extr, fp_in, value_col,
   # read the input polygon file
   if(is.null(layer)){ my_sf = st_read(fp_in, quiet=TRUE)
   }else{ my_sf = st_read(dsn=fp_in, layer=layer, quiet = TRUE) }
+  st_agr(my_sf) = "constant" # set constant relationship between attributes and geometry
   # get just the target column
   my_sf = my_sf %>% 
     st_drop_geometry(.) %>%
     select(all_of(c(id_cols, value_col))) %>%
-    rename(vals=value_col)
+    rename(vals = !!as.symbol(value_col))
   # get the extraction of the two by column id
   poly_extr = poly_extr %>%
     left_join(my_sf, by=id_cols)
@@ -107,7 +112,17 @@ load_scored_hex_grid <- function(poly_extr, fp_in, value_col,
 
 ###
 
+# load a hex grid from a filepath and filter it based on a column and values
+load_empty_hex_grid <- function(fp_in, id_cols, value_col=NULL, values=NULL){
+  hex_sf <- st_read(fp_in, quiet=TRUE) %>%
+    select(all_of(unique(c(id_cols, value_col))))
+  if(!is.null(value_col)){
+    hex_sf = hex_sf %>%
+      filter(!!as.symbol(value_col) %in% values) }
+  st_agr(hex_sf) = "constant" # set constant relationship between attributes and geometry
+  return(hex_sf)
+}
 
-
+###
 
 
