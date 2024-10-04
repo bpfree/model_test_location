@@ -18,7 +18,10 @@ input_file_global <<- "test_model_run.csv"
 source("./src/parse_input_file.R")
 
 # load the hex grid for the model run
-hex_grid_global <<- do.call(load_empty_hex_grid, args = hex_load_params)
+# hex_grid_global <<- do.call(load_empty_hex_grid, args = hex_load_params)
+
+fp = "D:/backedupStorage/AOA_processing/AK_AOA_dataProcessing/regional/b_intermediate_data/ak_aoa_emptyHexGrid_20241004.gpkg"
+hex_grid_global = st_read(fp) %>% filter(study_area=="Juneau")
 
 # filter hex grid based on the constraints
 if(length(constr_global)>0){ hex_grid_global <<- apply_model_constraints(

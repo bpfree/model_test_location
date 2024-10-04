@@ -55,7 +55,7 @@ column_product <- function(my_df, cols, id_cols=c(), na_replace=1){
 
 ###
 # create output filename for a model object and type of object
-object_filename <- function(object, type_tag, suffix=".gpkg", subfolder="model_data", added_tag=NULL){
+object_filename <- function(object, type_tag, suffix=".gpkg", subfolder="data/model_data", added_tag=NULL){
   ### examples of type tags
   # constr = constraints
   # lyrext = layer extraction
@@ -336,5 +336,15 @@ apply_model_constraints <- function(hex_sf, constr_object, id_cols){
 
 ###
 
+# custom parsing guess function for specifically this suitability model architecture\
+ # that also reads for the forced string flag: '
+parse_guess_custom <- function(x){
+  if(any(startsWith(x, "'"))) {
+    return(sub("^'", "", x))  # Remove the prefix but keep it as a string
+  }else{
+    return(parse_guess(x))    # Allow parse_guess to infer type
+  }
+}
 
+###
 

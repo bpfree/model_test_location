@@ -72,15 +72,21 @@ load_polygon_intersection_value <- function(poly_extr, fp_in, value_col, id_cols
   if(!is.null(buffer)){ my_sf = st_buffer(my_sf, dist=buffer)}
   # get the extraction polygon (grid) that intersects the input polygon
   extraction = st_intersection(poly_extr, my_sf)
+  test <<- extraction ####
   # summarise to return one value per extraction feature
-  extraction = extraction %>%
-    st_drop_geometry(.) %>%
-    group_by_at(id_cols) %>%       
-    summarise(
-      vals = ifelse(method %in% names(funcs_list_narm),
-                    funcs_list_narm[[method]](get(value_col), na.rm=TRUE),
-                    funcs_list_else[[method]](get(value_col)) ),
-    .groups = "drop")
+  if(nrow(extraction)>0){
+    extraction = extraction %>%
+      st_drop_geometry(.) %>%
+      group_by_at(id_cols) %>%       
+      summarise(
+        vals = ifelse(method %in% names(funcs_list_narm),
+                      funcs_list_narm[[method]](get(value_col), na.rm=TRUE),
+                      funcs_list_else[[method]](get(value_col)) ),
+      .groups = "drop")
+  }else{extraction = st_drop_geometry(poly_extr) %>% 
+    select(all_of(id_cols)) %>% 
+    mutate(vals=NA)
+  } # if no intersection return NAs
   # return
   return(extraction)
 }
