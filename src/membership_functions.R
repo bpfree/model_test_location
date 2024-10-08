@@ -116,7 +116,13 @@ quantile_membership <- function(x, nbins=9, rev=TRUE, targets="default",
 
 # negative relationship when rev=TRUE (default), positive-positive correlation when rev=FALSE
 bin_membership <- function(x, nbins=9, rev=TRUE, targets="default",
-                           breaks=NULL, zero_offset=(1/1000), fill_value=1){
+                           breaks=NULL, zero_offset=(1/1000), fill_value=1,
+                           upper_clamp = "max", lower_clamp = "min"){
+  # clamp values
+  if(upper_clamp != "max"){
+    x = ifelse(x > upper_clamp, upper_clamp, x)}
+  if(lower_clamp != "min"){
+    x = ifelse(x < lower_clamp, lower_clamp, x)}
   # if no direct bin mapping is given set breaks from nbins
   if(any(is.null(breaks))){breaks = seq(from=min(x, na.rm=TRUE), to=max(x, na.rm=TRUE), length.out=(nbins+1))}
   # check for 1 more target values than quantile cutoffs
