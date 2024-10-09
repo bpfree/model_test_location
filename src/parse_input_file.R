@@ -20,7 +20,7 @@ for(n in seq(nrow(global_params))){
   assign(global_params[n,2], parse_guess_custom(p_val))
 }
 ## standard hex grid and id columns
-hex_grid_global_path <<- file.path(sub("/$", "", project_dir), global_input[global_input[[2]]=="hex_grid", 3])
+hex_grid_global_path <<- file.path(sub("/$", "", project_dir), "data", global_input[global_input[[2]]=="hex_grid", 3])
 id_cols_global <<- global_input[global_input[[2]]=="id_columns", 3:ncol(global_input)]
 id_cols_global <<- id_cols_global[id_cols_global!=""]
 

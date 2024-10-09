@@ -38,6 +38,11 @@ load_polygon_intersection_boolean <- function(poly_extr, fp_in, id_cols=c(),
   st_agr(my_sf) = "constant" # set constant relationship between attributes and geometry
   # project to crs of the extraction polygon
   my_sf = st_transform(my_sf, st_crs(poly_extr))
+  # check if valid and try to make valid if not
+  if(any(!st_is_valid(my_sf))){
+    if(verbose>8){print(paste("WARNING: ATTEMPTING TO MAKE VALID", basename(fp_in)))}
+    my_sf = st_make_valid(my_sf)
+  }
   # apply buffer if present
   if(!is.null(buffer)){ my_sf = st_buffer(my_sf, dist=buffer)}
   # get the extraction polygon (grid) that intersects the input polygon
@@ -68,6 +73,11 @@ load_polygon_intersection_value <- function(poly_extr, fp_in, value_col, id_cols
   my_sf = st_transform(my_sf, st_crs(poly_extr))
   # get just the target column
   my_sf = my_sf %>% select(all_of(value_col))
+  # check if valid and try to make valid if not
+  if(any(!st_is_valid(my_sf))){
+    if(verbose>8){print(paste("WARNING: ATTEMPTING TO MAKE VALID", basename(fp_in)))}
+    my_sf = st_make_valid(my_sf)
+  }
   # apply buffer if present
   if(!is.null(buffer)){ my_sf = st_buffer(my_sf, dist=buffer)}
   # get the extraction polygon (grid) that intersects the input polygon
